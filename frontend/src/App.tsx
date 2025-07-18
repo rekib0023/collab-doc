@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import AuthPage from "@/pages/AuthPage";
 import CreateWorkspacePage from "@/pages/CreateWorkspacePage";
 import DocumentPage from "@/pages/DocumentPage";
+import DocumentCreatePage from "@/pages/DocumentCreatePage";
 import EditWorkspacePage from "@/pages/EditWorkspacePage";
 import HomePage from "@/pages/HomePage";
 import WorkspaceMembersPage from "@/pages/WorkspaceMembersPage";
@@ -77,10 +78,34 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path=":workspaceId/documents/create"
+              element={
+                <ProtectedRoute>
+                  <DocumentCreatePage />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           {/* Document routes */}
           <Route path="/documents">
+            <Route
+              index
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="create"
+              element={
+                <ProtectedRoute>
+                  <DocumentCreatePage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path=":documentId"
               element={

@@ -1,4 +1,6 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import axios from 'axios';
+import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { RootState } from './index';
 
 export interface ApiError {
@@ -8,21 +10,43 @@ export interface ApiError {
   };
 }
 
+// Define axios instance
+const axiosBaseQuery = ({ baseUrl }: { baseUrl: string } = { baseUrl: '' }): BaseQueryFn => async (
+  args,
+  { getState }
+) => {
+  const token = (getState() as RootState).auth.token;
+
+  try {
+    const result = await axios({
+      url: baseUrl + (typeof args === 'string' ? args : args.url),
+      method: typeof args === 'string' ? 'GET' : args.method,
+      data: args.body,
+      params: args.params,
+      withCredentials: true,
+      headers: {
+        ...args.headers,
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+    });
+
+    return { data: result.data };
+  } catch (axiosError) {
+    const err = axiosError as any;
+    return {
+      error: {
+        status: err.response?.status,
+        data: err.response?.data || err.message
+      },
+    };
+  }
+};
+
 // Define our API base service
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1',
-    prepareHeaders: (headers, { getState }) => {
-      // Get token from the auth store
-      const token = (getState() as RootState).auth.token;
-
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-
-      return headers;
-    },
+  baseQuery: axiosBaseQuery({
+    baseUrl: 'http://localhost:8000/api/v1',
   }),
   tagTypes: ['User', 'Workspace', 'Document'],
   endpoints: () => ({}),
@@ -32,17 +56,26 @@ export const api = createApi({
 export const authApi = api.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<
-      { token: string; user: any },
+      { access_token: string; token_type: string, user: any },
       { email: string; password: string }
     >({
-      query: (credentials) => ({
-        url: '/auth/login',
-        method: 'POST',
-        body: credentials,
-      }),
+      query: (credentials) => {
+        const formData = new FormData();
+        formData.append('username', credentials.email);
+        formData.append('password', credentials.password);
+
+        return {
+          url: '/auth/login',
+          method: 'POST',
+          body: formData,
+          headers: {
+            // Remove Content-Type header to let axios set it correctly with boundary for FormData
+          },
+        };
+      },
     }),
     register: builder.mutation<
-      { token: string; user: any },
+      { access_token: string; token_type: string; user: any },
       { email: string; password: string; name: string }
     >({
       query: (userData) => ({
@@ -146,12 +179,16 @@ export const workspaceApi = api.injectEndpoints({
 export const documentApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getDocuments: builder.query<any[], string>({
-      query: (workspaceId) => `/workspaces/${workspaceId}/documents`,
+      query: (arg) => {
+        if (arg === 'recent') {
+          return '/workspaces/recent/documents';
+        }
+        return `/workspaces/${arg}/documents`;
+      },
       providesTags: ['Document'],
     }),
-    getDocument: builder.query<any, { workspaceId: string; documentId: string }>({
-      query: ({ workspaceId, documentId }) =>
-        `/workspaces/${workspaceId}/documents/${documentId}`,
+    getDocument: builder.query<any, { documentId: string }>({
+      query: ({ documentId }) => `/documents/${documentId}`,
       providesTags: ['Document'],
     }),
     createDocument: builder.mutation<
@@ -167,21 +204,18 @@ export const documentApi = api.injectEndpoints({
     }),
     updateDocument: builder.mutation<
       any,
-      { workspaceId: string; documentId: string; name?: string; content?: any }
+      { documentId: string; name?: string; content?: any }
     >({
-      query: ({ workspaceId, documentId, ...data }) => ({
-        url: `/workspaces/${workspaceId}/documents/${documentId}`,
+      query: ({ documentId, ...data }) => ({
+        url: `/documents/${documentId}`,
         method: 'PATCH',
         body: data,
       }),
       invalidatesTags: ['Document'],
     }),
-    deleteDocument: builder.mutation<
-      void,
-      { workspaceId: string; documentId: string }
-    >({
-      query: ({ workspaceId, documentId }) => ({
-        url: `/workspaces/${workspaceId}/documents/${documentId}`,
+    deleteDocument: builder.mutation<void, { documentId: string }>({
+      query: ({ documentId }) => ({
+        url: `/documents/${documentId}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Document'],

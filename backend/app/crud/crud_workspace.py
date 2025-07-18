@@ -2,11 +2,12 @@ import uuid
 from typing import List, Optional
 
 from app.crud.base import CRUDBase
+from app.models.user import User
 from app.models.workspace import Workspace, workspace_members
 from app.schemas import WorkspaceCreate, WorkspaceUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 
 class CRUDWorkspace(CRUDBase[Workspace, WorkspaceCreate, WorkspaceUpdate]):
@@ -44,6 +45,10 @@ class CRUDWorkspace(CRUDBase[Workspace, WorkspaceCreate, WorkspaceUpdate]):
     ) -> List[Workspace]:
         result = await db.execute(
             select(Workspace)
+            .options(
+                selectinload(Workspace.members),
+                selectinload(Workspace.creator).selectinload(User.owned_workspaces),
+            )
             .join(workspace_members)
             .where(workspace_members.c.user_id == user_id)
             .offset(skip)
@@ -56,7 +61,10 @@ class CRUDWorkspace(CRUDBase[Workspace, WorkspaceCreate, WorkspaceUpdate]):
     ) -> Optional[Workspace]:
         result = await db.execute(
             select(Workspace)
-            .options(joinedload(Workspace.members))
+            .options(
+                selectinload(Workspace.members),
+                selectinload(Workspace.creator).selectinload(User.owned_workspaces),
+            )
             .where(Workspace.id == workspace_id)
         )
         return result.scalars().first()

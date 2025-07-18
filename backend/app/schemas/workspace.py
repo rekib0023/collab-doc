@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from app.schemas.user import User
@@ -41,14 +41,37 @@ class WorkspaceInDB(WorkspaceBase):
         from_attributes = True
 
 
+# Simple user model to avoid cyclic references
+class UserBasicInfo(BaseModel):
+    id: str
+    name: str
+    email: str
+    avatar: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Full workspace model with potentially cyclic references
 class Workspace(WorkspaceInDB):
     creator: "User"
     members: List["User"] = []
 
 
+# Safe response model to avoid recursion errors
+class WorkspaceResponse(WorkspaceInDB):
+    creator: UserBasicInfo
+    members: List[UserBasicInfo] = Field(default_factory=list)
+
+
 class DocumentBase(BaseModel):
     name: str
     workspace_id: str
+
+
+class DocumentCreateRequest(BaseModel):
+    name: str
+    content: Optional[Dict[str, Any]] = None
 
 
 class DocumentCreate(DocumentBase):
@@ -72,6 +95,11 @@ class DocumentInDB(DocumentBase):
 
 class Document(DocumentInDB):
     creator: "User"
+
+
+# Safe response model
+class DocumentResponse(DocumentInDB):
+    creator: UserBasicInfo
 
 
 class DocumentVersion(BaseModel):

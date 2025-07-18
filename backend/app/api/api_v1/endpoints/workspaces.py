@@ -3,11 +3,13 @@ from typing import Any, List
 from app import crud
 from app.api.deps import get_current_active_user, get_db
 from app.schemas import (
-    Document,
+    DocumentCreate,
+    DocumentCreateRequest,
+    DocumentResponse,
     User,
-    Workspace,
     WorkspaceAddMember,
     WorkspaceCreate,
+    WorkspaceResponse,
     WorkspaceUpdate,
 )
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter()
 
 
-@router.get("/recent/documents", response_model=List[Document])
+@router.get("/recent/documents", response_model=List[DocumentResponse])
 async def read_recent_documents(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -31,7 +33,7 @@ async def read_recent_documents(
     )
 
 
-@router.get("/", response_model=List[Workspace])
+@router.get("/", response_model=List[WorkspaceResponse])
 async def read_workspaces(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -46,7 +48,7 @@ async def read_workspaces(
     )
 
 
-@router.post("/", response_model=Workspace)
+@router.post("/", response_model=WorkspaceResponse)
 async def create_workspace(
     *,
     db: AsyncSession = Depends(get_db),
@@ -62,7 +64,7 @@ async def create_workspace(
     return workspace
 
 
-@router.get("/{workspace_id}", response_model=Workspace)
+@router.get("/{workspace_id}", response_model=WorkspaceResponse)
 async def read_workspace(
     *,
     workspace_id: str,
@@ -94,7 +96,7 @@ async def read_workspace(
     return workspace
 
 
-@router.put("/{workspace_id}", response_model=Workspace)
+@router.put("/{workspace_id}", response_model=WorkspaceResponse)
 async def update_workspace(
     *,
     workspace_id: str,
@@ -158,7 +160,40 @@ async def delete_workspace(
     await crud.workspace.remove(db=db, id=workspace_id)
 
 
-@router.post("/{workspace_id}/members", response_model=Workspace)
+@router.post("/{workspace_id}/documents", response_model=DocumentResponse)
+async def create_document(
+    *,
+    workspace_id: str,
+    db: AsyncSession = Depends(get_db),
+    document_in: DocumentCreateRequest,
+    current_user: User = Depends(get_current_active_user),
+) -> Any:
+    """
+    Create new document in a workspace.
+    """
+    # Check if user has edit permissions in workspace
+    role = await crud.workspace.get_member_role(
+        db=db, workspace_id=workspace_id, user_id=current_user.id
+    )
+    if not role or role not in ["owner", "admin", "editor"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to create a document",
+        )
+
+    document_create = DocumentCreate(
+        name=document_in.name,
+        content=document_in.content,
+        workspace_id=workspace_id,
+    )
+
+    document = await crud.document.create_with_owner(
+        db=db, obj_in=document_create, owner_id=current_user.id
+    )
+    return document
+
+
+@router.post("/{workspace_id}/members", response_model=WorkspaceResponse)
 async def add_workspace_member(
     *,
     workspace_id: str,
@@ -204,7 +239,7 @@ async def add_workspace_member(
     )
 
 
-@router.delete("/{workspace_id}/members/{user_id}", response_model=Workspace)
+@router.delete("/{workspace_id}/members/{user_id}", response_model=WorkspaceResponse)
 async def remove_workspace_member(
     *,
     workspace_id: str,

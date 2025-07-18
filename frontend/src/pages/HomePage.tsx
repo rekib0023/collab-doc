@@ -28,7 +28,7 @@ const HomePage: React.FC = () => {
     useGetDocumentsQuery("recent", { skip: !isAuthenticated });
 
   return (
-    <div className="container py-6">
+    <div className="container p-6">
       {isAuthenticated ? (
         <>
           <div className="flex items-center justify-between mb-6">

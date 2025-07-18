@@ -61,16 +61,27 @@ const RegisterForm: React.FC = () => {
       dispatch(
         setCredentials({
           user: result.user,
-          token: result.token,
+          token: result.access_token,
         })
       );
       navigate("/");
     } catch (err: any) {
-      setError(
-        err.data?.detail ||
+      // Handle different error formats
+      if (Array.isArray(err.data?.detail)) {
+        // Handle validation errors from FastAPI
+        const validationErrors = err.data.detail.map((e: any) => e.msg).join(', ');
+        setError(validationErrors || "Validation error");
+      } else if (typeof err.data?.detail === 'object' && err.data?.detail !== null) {
+        // Handle object errors
+        setError(JSON.stringify(err.data.detail));
+      } else {
+        // Handle string errors
+        setError(
+          err.data?.detail ||
           err.error ||
           "Registration failed. Please try again."
-      );
+        );
+      }
     }
   };
 

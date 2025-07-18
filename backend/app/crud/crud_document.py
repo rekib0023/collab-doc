@@ -7,23 +7,33 @@ from app.models.workspace import Document, DocumentVersion, Operation
 from app.schemas import DocumentCreate, DocumentUpdate, OperationCreate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 
 class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
+    async def get(self, db: AsyncSession, id: Any) -> Optional[Document]:
+        result = await db.execute(
+            select(self.model)
+            .options(selectinload(self.model.creator))
+            .where(self.model.id == id)
+        )
+        return result.scalars().first()
+
     async def create_with_owner(
         self, db: AsyncSession, *, obj_in: DocumentCreate, owner_id: str
     ) -> Document:
-        obj_in_data = obj_in.dict(exclude={"content"})
         snapshot = json.dumps(obj_in.content) if obj_in.content else "{}"
 
         db_obj = Document(
-            id=str(uuid.uuid4()), **obj_in_data, snapshot=snapshot, created_by=owner_id
+            id=str(uuid.uuid4()),
+            name=obj_in.name,
+            workspace_id=obj_in.workspace_id,
+            snapshot=snapshot,
+            created_by=owner_id,
         )
+        # Add both the document and its initial version to the session
         db.add(db_obj)
-        await db.commit()
-        await db.refresh(db_obj)
 
-        # Create initial version
         version = DocumentVersion(
             id=str(uuid.uuid4()),
             document_id=db_obj.id,
@@ -32,7 +42,13 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             created_by=owner_id,
         )
         db.add(version)
+
+        # Commit the transaction to save both objects
         await db.commit()
+
+        # Refresh both objects to get the latest state from the DB
+        await db.refresh(db_obj)
+        await db.refresh(version)
 
         return db_obj
 
@@ -51,19 +67,23 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         self, db: AsyncSession, *, user_id: str, skip: int = 0, limit: int = 10
     ) -> List[Document]:
         """Get recent documents that the user has access to, across all workspaces"""
-        from app.models.workspace import WorkspaceMember
-        
+        from app.models.workspace import workspace_members
+
         # Get all workspaces the user is a member of
         result = await db.execute(
             select(Document)
-            .join(WorkspaceMember, WorkspaceMember.workspace_id == Document.workspace_id)
-            .where(WorkspaceMember.user_id == user_id)
+            .join(
+                workspace_members,
+                workspace_members.c.workspace_id == Document.workspace_id,
+            )
+            .where(workspace_members.c.user_id == user_id)
+            .options(selectinload(Document.creator))
             .order_by(Document.updated_at.desc())
             .offset(skip)
             .limit(limit)
         )
         return result.scalars().all()
-        
+
     async def update_document(
         self,
         db: AsyncSession,

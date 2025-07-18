@@ -59,7 +59,7 @@ async def register(
             detail="A user with this email already exists",
         )
     user = await crud.user.create(db, obj_in=user_in)
-    
+
     # Create a dict with user data, initializing owned_workspaces as empty list
     # to avoid the async relationship access during serialization
     user_data = {

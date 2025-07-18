@@ -122,7 +122,7 @@ const WorkspacePage: React.FC = () => {
 
         <div className="flex space-x-2">
           <Button asChild>
-            <Link to={`/workspaces/${workspaceId}/documents/create`}>
+            <Link to={`/documents/create?workspace=${workspaceId}`}>
               <Plus className="mr-2 h-4 w-4" />
               New Document
             </Link>
@@ -232,7 +232,7 @@ const WorkspacePage: React.FC = () => {
                   This workspace doesn't have any documents yet.
                 </p>
                 <Button asChild>
-                  <Link to={`/workspaces/${workspaceId}/documents/create`}>
+                  <Link to={`/documents/create?workspace=${workspaceId}`}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Document
                   </Link>

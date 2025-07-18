@@ -18,12 +18,7 @@ const DocumentPage: React.FC = () => {
     isLoading,
     isError,
     error,
-  } = useGetDocumentQuery(
-    documentId
-      ? { workspaceId: "default", documentId }
-      : { workspaceId: "", documentId: "" },
-    { skip: !documentId }
-  );
+  } = useGetDocumentQuery({ documentId: documentId! }, { skip: !documentId });
 
   if (isLoading) {
     return (
