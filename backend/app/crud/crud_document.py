@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from app.crud.base import CRUDBase
 from app.models.workspace import Document, DocumentVersion, Operation
-from app.schemas.workspace import DocumentCreate, DocumentUpdate, OperationCreate
+from app.schemas import DocumentCreate, DocumentUpdate, OperationCreate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +47,23 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         )
         return result.scalars().all()
 
+    async def get_recent_by_user(
+        self, db: AsyncSession, *, user_id: str, skip: int = 0, limit: int = 10
+    ) -> List[Document]:
+        """Get recent documents that the user has access to, across all workspaces"""
+        from app.models.workspace import WorkspaceMember
+        
+        # Get all workspaces the user is a member of
+        result = await db.execute(
+            select(Document)
+            .join(WorkspaceMember, WorkspaceMember.workspace_id == Document.workspace_id)
+            .where(WorkspaceMember.user_id == user_id)
+            .order_by(Document.updated_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
+        
     async def update_document(
         self,
         db: AsyncSession,

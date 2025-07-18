@@ -1,7 +1,12 @@
+import logging
+
 from app.api.api_v1.api import api_router
 from app.core.config import settings
+from app.db.base import engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -21,6 +26,26 @@ app.add_middleware(
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting up application")
+    # Initialize database connections
+    # try:
+    #     # Create initial data in DB
+    #     # await init_db()
+    #     logger.info("Database initialized successfully")
+    # except Exception as e:
+    #     logger.error(f"Error initializing database: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down application")
+    # Close database connections
+    await engine.dispose()
+    logger.info("Database connections closed")
 
 
 @app.get("/")

@@ -2,8 +2,9 @@ from typing import Any, List
 
 from app import crud
 from app.api.deps import get_current_active_user, get_db
-from app.schemas.user import User
-from app.schemas.workspace import (
+from app.schemas import (
+    Document,
+    User,
     Workspace,
     WorkspaceAddMember,
     WorkspaceCreate,
@@ -13,6 +14,21 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
+
+
+@router.get("/recent/documents", response_model=List[Document])
+async def read_recent_documents(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    skip: int = 0,
+    limit: int = 10,
+) -> Any:
+    """
+    Retrieve recent documents for the current user across all workspaces.
+    """
+    return await crud.document.get_recent_by_user(
+        db=db, user_id=current_user.id, skip=skip, limit=limit
+    )
 
 
 @router.get("/", response_model=List[Workspace])

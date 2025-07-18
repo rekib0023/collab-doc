@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from app.crud.base import CRUDBase
 from app.models.workspace import Workspace, workspace_members
-from app.schemas.workspace import WorkspaceCreate, WorkspaceUpdate
+from app.schemas import WorkspaceCreate, WorkspaceUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload

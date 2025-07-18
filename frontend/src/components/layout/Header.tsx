@@ -12,13 +12,21 @@ import {
 import { RootState } from "@/store";
 import { Bell, LogOut, Settings, User } from "lucide-react";
 import React from "react";
-import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "@/store/slices/authSlice";
 
 const Header: React.FC = () => {
   const { user, isAuthenticated } = useSelector(
     (state: RootState) => state.auth
   );
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/');
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -80,7 +88,7 @@ const Header: React.FC = () => {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

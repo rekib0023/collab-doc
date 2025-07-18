@@ -2,7 +2,7 @@ from typing import Any, List
 
 from app import crud
 from app.api.deps import get_current_active_superuser, get_current_active_user, get_db
-from app.schemas.user import User, UserCreate, UserUpdate
+from app.schemas import User, UserCreate, UserUpdate
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 

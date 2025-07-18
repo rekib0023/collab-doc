@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from app.schemas.user import User
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from app.schemas.user import User
 
 
 class WorkspaceBase(BaseModel):
@@ -40,8 +42,8 @@ class WorkspaceInDB(WorkspaceBase):
 
 
 class Workspace(WorkspaceInDB):
-    creator: User
-    members: List[User] = []
+    creator: "User"
+    members: List["User"] = []
 
 
 class DocumentBase(BaseModel):
@@ -69,7 +71,7 @@ class DocumentInDB(DocumentBase):
 
 
 class Document(DocumentInDB):
-    creator: User
+    creator: "User"
 
 
 class DocumentVersion(BaseModel):
@@ -79,7 +81,7 @@ class DocumentVersion(BaseModel):
     name: Optional[str] = None
     created_by: str
     created_at: datetime
-    creator: User
+    creator: "User"
 
     class Config:
         from_attributes = True

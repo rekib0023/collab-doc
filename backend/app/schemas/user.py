@@ -1,7 +1,10 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, TYPE_CHECKING
 
 from pydantic import BaseModel, EmailStr
+
+if TYPE_CHECKING:
+    from app.schemas.workspace import Workspace
 
 
 class UserBase(BaseModel):
@@ -33,7 +36,9 @@ class UserInDB(UserBase):
 
 
 class User(UserInDB):
-    pass
+    # Use empty list as default to avoid async loading issues
+    owned_workspaces: List["Workspace"] = []
+
 
 
 class Token(BaseModel):

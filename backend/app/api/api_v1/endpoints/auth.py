@@ -2,10 +2,10 @@ from datetime import timedelta
 from typing import Any
 
 from app import crud
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.security import create_access_token
-from app.schemas.user import Token, User, UserCreate
+from app.schemas import Token, User, UserCreate
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,14 +59,40 @@ async def register(
             detail="A user with this email already exists",
         )
     user = await crud.user.create(db, obj_in=user_in)
-    return user
+    
+    # Create a dict with user data, initializing owned_workspaces as empty list
+    # to avoid the async relationship access during serialization
+    user_data = {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "avatar": user.avatar,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+        "owned_workspaces": [],
+    }
+    return user_data
 
 
 @router.get("/me", response_model=User)
 async def read_users_me(
-    current_user: User = Depends(crud.user.get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Get current user
     """
-    return current_user
+    # Create a dict with user data to avoid async relationship access during serialization
+    user_data = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "avatar": current_user.avatar,
+        "is_active": current_user.is_active,
+        "is_superuser": current_user.is_superuser,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
+        "owned_workspaces": [],
+    }
+    return user_data

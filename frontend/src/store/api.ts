@@ -12,10 +12,10 @@ export interface ApiError {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api',
+    baseUrl: '/api/v1',
     prepareHeaders: (headers, { getState }) => {
-      // Get token from the store
-      const token = (getState() as RootState).user.currentUser?.id;
+      // Get token from the auth store
+      const token = (getState() as RootState).auth.token;
 
       if (token) {
         headers.set('authorization', `Bearer ${token}`);

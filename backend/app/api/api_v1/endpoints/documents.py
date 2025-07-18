@@ -2,8 +2,8 @@ from typing import Any, Dict, List
 
 from app import crud
 from app.api.deps import get_current_active_user, get_db
-from app.schemas.user import User
-from app.schemas.workspace import (
+from app.schemas import (
+    User,
     Document,
     DocumentCreate,
     DocumentUpdate,

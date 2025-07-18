@@ -12,7 +12,9 @@ redis
 aiokafka
 websockets
 psycopg[binary]
+psycopg2-binary
 bcrypt
 pytest
 httpx
 pytest-asyncio
+email-validator

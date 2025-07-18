@@ -56,7 +56,20 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     # Kafka
-    KAFKA_BOOTSTRAP_SERVERS: List[str] = ["localhost:9092"]
+    KAFKA_BOOTSTRAP_SERVERS: Union[str, List[str]] = ["localhost:9092"]
+
+    @field_validator("KAFKA_BOOTSTRAP_SERVERS", mode="before")
+    @classmethod
+    def assemble_kafka_servers(cls, v: Optional[Union[str, List[str]]]) -> List[str]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            if not v.strip():
+                return []
+            return [server.strip() for server in v.split(",")]
+        if isinstance(v, list):
+            return v
+        raise ValueError(f"Unexpected type for KAFKA_BOOTSTRAP_SERVERS: {type(v)}")
 
 
 settings = Settings()
