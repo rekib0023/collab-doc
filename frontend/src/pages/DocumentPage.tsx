@@ -22,7 +22,7 @@ const DocumentPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="container py-6 space-y-4">
+      <div className="container p-6 space-y-4">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-64" />
           <div className="flex space-x-2">
@@ -53,7 +53,7 @@ const DocumentPage: React.FC = () => {
   }
 
   return (
-    <div className="container py-6">
+    <div className="container p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">{document.title}</h1>

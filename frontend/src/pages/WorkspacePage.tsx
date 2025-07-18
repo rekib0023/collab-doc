@@ -1,3 +1,10 @@
+import CardGrid from "@/components/shared/CardGrid";
+import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+import DocumentCard from "@/components/shared/DocumentCard";
+import EmptyState from "@/components/shared/EmptyState";
+import LoadingCard from "@/components/shared/LoadingCard";
+import PageHeader from "@/components/shared/PageHeader";
+import TabsContainer from "@/components/shared/TabsContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -7,15 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import CardGrid from "@/components/shared/CardGrid";
-import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
-import DocumentCard from "@/components/shared/DocumentCard";
-import EmptyState from "@/components/shared/EmptyState";
-import LoadingCard from "@/components/shared/LoadingCard";
-import PageHeader from "@/components/shared/PageHeader";
-import TabsContainer from "@/components/shared/TabsContainer";
-import useAuth from "@/hooks/useAuth";
-import { useGetDocumentsQuery, useGetWorkspaceByIdQuery } from "@/store/api";
+import useDialog from "@/hooks/useDialog";
+import useDocuments from "@/hooks/useDocuments";
+import useToast from "@/hooks/useToast";
+import useWorkspace from "@/hooks/useWorkspace";
+import { useDeleteWorkspaceMutation } from "@/store/api";
 import { Document } from "@/types/document";
 import {
   Clock,
@@ -28,33 +31,35 @@ import {
   Trash,
   Users,
 } from "lucide-react";
-import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import React from "react";
+import { Link } from "react-router-dom";
 
 const WorkspacePage: React.FC = () => {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
-  const { isAuthenticated } = useAuth();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // Use our custom hooks for cleaner code
+  // Auth state is handled within the useWorkspace and useDocuments hooks
+  const { workspace, workspaceId, isLoading, error } = useWorkspace();
+  const { documents, isLoading: documentsLoading, error: documentsError } = useDocuments(workspaceId || "");
+  const { isOpen: isDeleteDialogOpen, open: openDeleteDialog, close: closeDeleteDialog } = useDialog();
+  const { success, error: showError } = useToast();
+  const [deleteWorkspace] = useDeleteWorkspaceMutation();
 
-  const {
-    data: workspace,
-    isLoading,
-    error,
-  } = useGetWorkspaceByIdQuery(workspaceId || "", {
-    skip: !workspaceId || !isAuthenticated,
-  });
-
-  const {
-    data: documents,
-    isLoading: documentsLoading,
-    error: documentsError,
-  } = useGetDocumentsQuery(workspaceId || "", {
-    skip: !workspaceId || !isAuthenticated,
-  });
+  const handleDeleteWorkspace = async () => {
+    if (!workspaceId) return;
+    try {
+      await deleteWorkspace(workspaceId).unwrap();
+      success("Workspace deleted", "The workspace was successfully deleted");
+      // Navigate after successful deletion
+      window.location.href = "/";
+    } catch (err) {
+      showError("Failed to delete workspace", "Please try again later");
+      console.error("Failed to delete workspace", err);
+    }
+    closeDeleteDialog();
+  };
 
   if (isLoading || documentsLoading) {
     return (
-      <div className="container py-6 space-y-6">
+      <div className="container p-6 space-y-6">
         {/* Loading header */}
         <div className="flex items-center justify-between">
           <div className="h-8 w-1/3">
@@ -106,7 +111,7 @@ const WorkspacePage: React.FC = () => {
 
   if (error || !workspace || documentsError) {
     return (
-      <div className="container py-6">
+      <div className="container p-6">
         <Card className="mx-auto max-w-md">
           <CardHeader>
             <CardTitle className="text-center">
@@ -128,7 +133,7 @@ const WorkspacePage: React.FC = () => {
   }
 
   return (
-    <div className="container py-6 space-y-6">
+    <div className="container p-6 space-y-6">
       <PageHeader
         title={workspace.name}
         description={workspace.description}
@@ -186,9 +191,9 @@ const WorkspacePage: React.FC = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-destructive cursor-pointer flex items-center"
-                  onClick={() => setIsDeleteDialogOpen(true)}
+                <DropdownMenuItem
+                  className="text-red-600"
+                  onClick={openDeleteDialog}
                 >
                   <Trash className="mr-2 h-4 w-4" />
                   Delete Workspace
@@ -353,16 +358,11 @@ const WorkspacePage: React.FC = () => {
           }
         ]}
       />
-      
+
       <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={() => {
-          // Here you would call the API to delete the workspace
-          console.log(`Deleting workspace ${workspaceId}`);
-          // Redirect to homepage after deletion
-          window.location.href = "/";
-        }}
+        onClose={closeDeleteDialog}
+        onConfirm={handleDeleteWorkspace}
         title="Delete Workspace"
         description={`Are you sure you want to delete workspace "${workspace?.name}"? This action cannot be undone and will permanently delete all documents in this workspace.`}
         confirmText="Delete Workspace"

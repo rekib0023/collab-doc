@@ -1,11 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { useRegisterMutation } from "@/store/api";
-import { setCredentials } from "@/store/slices/authSlice";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import React from "react";
+import { Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,73 +11,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const registerSchema = z
-  .object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z
-      .string()
-      .min(6, "Password must be at least 6 characters"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+// Custom hook for auth forms
+import useAuthForm from "@/hooks/useAuthForm";
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+// Schema and validation is now handled by useAuthForm hook
 
 const RegisterForm: React.FC = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const [register, { isLoading }] = useRegisterMutation();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  const onSubmit = async (values: RegisterFormValues) => {
-    try {
-      setError(null);
-      const { confirmPassword, ...registerData } = values;
-      const result = await register(registerData).unwrap();
-      dispatch(
-        setCredentials({
-          user: result.user,
-          token: result.access_token,
-        })
-      );
-      navigate("/");
-    } catch (err: any) {
-      // Handle different error formats
-      if (Array.isArray(err.data?.detail)) {
-        // Handle validation errors from FastAPI
-        const validationErrors = err.data.detail.map((e: any) => e.msg).join(', ');
-        setError(validationErrors || "Validation error");
-      } else if (typeof err.data?.detail === 'object' && err.data?.detail !== null) {
-        // Handle object errors
-        setError(JSON.stringify(err.data.detail));
-      } else {
-        // Handle string errors
-        setError(
-          err.data?.detail ||
-          err.error ||
-          "Registration failed. Please try again."
-        );
-      }
-    }
-  };
+  // Use our custom auth form hook with 'register' type
+  const { methods, showPassword, togglePasswordVisibility, isLoading, onSubmit } = useAuthForm('register');
+  
+  // We need a separate state for confirm password visibility
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
@@ -94,16 +33,12 @@ const RegisterForm: React.FC = () => {
         </p>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {/* Error handling is now managed by the useAuthForm hook through useToast */}
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <Form {...methods}>
+        <form onSubmit={onSubmit} className="space-y-4">
           <FormField
-            control={form.control}
+            control={methods.control}
             name="name"
             render={({ field }) => (
               <FormItem>
@@ -121,7 +56,7 @@ const RegisterForm: React.FC = () => {
           />
 
           <FormField
-            control={form.control}
+            control={methods.control}
             name="email"
             render={({ field }) => (
               <FormItem>
@@ -140,7 +75,7 @@ const RegisterForm: React.FC = () => {
           />
 
           <FormField
-            control={form.control}
+            control={methods.control}
             name="password"
             render={({ field }) => (
               <FormItem>
@@ -157,13 +92,13 @@ const RegisterForm: React.FC = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={togglePasswordVisibility}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4 w-4" aria-hidden="true" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4" aria-hidden="true" />
                       )}
                       <span className="sr-only">
                         {showPassword ? "Hide password" : "Show password"}
@@ -177,8 +112,8 @@ const RegisterForm: React.FC = () => {
           />
 
           <FormField
-            control={form.control}
-            name="confirmPassword"
+            control={methods.control}
+            name="confirm_password"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
@@ -194,15 +129,15 @@ const RegisterForm: React.FC = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4 w-4" aria-hidden="true" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4" aria-hidden="true" />
                       )}
                       <span className="sr-only">
                         {showConfirmPassword

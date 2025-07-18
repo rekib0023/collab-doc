@@ -15,4 +15,5 @@ export interface Document {
   creator: UserBasicInfo;
   description?: string;
   content?: any;
+  is_starred?: boolean;
 }

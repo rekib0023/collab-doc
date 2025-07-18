@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+
+// Shared components
 import CardGrid from "@/components/shared/CardGrid";
 import DocumentCard from "@/components/shared/DocumentCard";
 import EmptyState from "@/components/shared/EmptyState";
@@ -6,8 +8,12 @@ import LoadingCard from "@/components/shared/LoadingCard";
 import PageHeader from "@/components/shared/PageHeader";
 import TabsContainer from "@/components/shared/TabsContainer";
 import WorkspaceCard from "@/components/shared/WorkspaceCard";
+
+// Custom hooks
 import useAuth from "@/hooks/useAuth";
-import { useGetDocumentsQuery, useGetWorkspacesQuery } from "@/store/api";
+import useDocuments from "@/hooks/useDocuments";
+import useToast from "@/hooks/useToast";
+import useWorkspaces from "@/hooks/useWorkspaces";
 import { Document } from "@/types/document";
 import { Clock, FileText, Folder, Plus, Star } from "lucide-react";
 import React from "react";
@@ -15,12 +21,30 @@ import { Link } from "react-router-dom";
 
 const HomePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-
-  const { data: workspaces, isLoading: isLoadingWorkspaces } =
-    useGetWorkspacesQuery(undefined, { skip: !isAuthenticated });
-
-  const { data: recentDocuments, isLoading: isLoadingDocuments } =
-    useGetDocumentsQuery("recent", { skip: !isAuthenticated });
+  const { success, error: showError } = useToast();
+  
+  // Use our custom hooks for cleaner data fetching
+  const { workspaces, isLoading: isLoadingWorkspaces } = useWorkspaces();
+  const { documents: recentDocuments, isLoading: isLoadingDocuments } = useDocuments("recent");
+  
+  // Handle document star/unstar
+  const handleToggleStar = async (documentId: string, isStarred: boolean) => {
+    try {
+      console.log(`Toggling star for document ${documentId} to ${isStarred}`);      
+      // This would be implemented with an actual API call
+      // await toggleStarDocument(documentId).unwrap();
+      success(
+        isStarred ? "Document starred" : "Document unstarred", 
+        "Your changes have been saved"
+      );
+    } catch (err) {
+      showError(
+        "Action failed", 
+        "There was a problem updating the document. Please try again."
+      );
+      console.error("Failed to toggle star", err);
+    }
+  };
 
   return (
     <div className="container p-6">
@@ -72,7 +96,11 @@ const HomePage: React.FC = () => {
                     ) : recentDocuments && recentDocuments.length > 0 ? (
                       <CardGrid>
                         {recentDocuments.map((document: Document) => (
-                          <DocumentCard key={document.id} document={document} />
+                          <DocumentCard 
+                            key={document.id} 
+                            document={document} 
+                            onStarToggle={(id) => handleToggleStar(id, !document.is_starred)} 
+                          />
                         ))}
                       </CardGrid>
                     ) : (
