@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RootState } from "@/store";
 import { useGetDocumentsQuery, useGetWorkspacesQuery } from "@/store/api";
+import { Document } from "@/types/document";
 import { Clock, FileText, Folder, Plus, Star } from "lucide-react";
 import React from "react";
 import { useSelector } from "react-redux";
@@ -92,30 +94,40 @@ const HomePage: React.FC = () => {
                 </div>
               ) : recentDocuments && recentDocuments.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentDocuments.map((document) => (
+                  {recentDocuments.map((document: Document) => (
                     <Card key={document.id} className="overflow-hidden">
                       <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={document.creator.avatar || ""} />
+                            <AvatarFallback>
+                              {document.creator.name[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-muted-foreground truncate">
+                            {document.creator.name}
+                          </span>
+                        </div>
                         <CardTitle className="truncate text-lg">
-                          {document.title}
+                          {document.name}
                         </CardTitle>
-                        <CardDescription className="truncate">
-                          {document.workspace?.name || "Personal"}
-                        </CardDescription>
                       </CardHeader>
                       <CardContent className="pb-2">
                         <p className="text-sm text-muted-foreground line-clamp-2">
                           {document.description || "No description available."}
                         </p>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
+                      <div className="flex justify-between items-center p-4 pt-0">
                         <span className="text-xs text-muted-foreground">
                           Edited{" "}
-                          {new Date(document.updated_at).toLocaleDateString()}
+                          {new Date(
+                            document.updated_at || document.created_at
+                          ).toLocaleDateString()}
                         </span>
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/documents/${document.id}`}>Open</Link>
                         </Button>
-                      </CardFooter>
+                      </div>
                     </Card>
                   ))}
                 </div>

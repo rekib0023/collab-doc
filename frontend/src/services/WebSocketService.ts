@@ -63,7 +63,9 @@ export default class WebSocketService {
 
   public disconnect = () => {
     if (this.socket) {
-      this.socket.close();
+      if (this.socket.readyState === WebSocket.OPEN) {
+        this.socket.close();
+      }
       this.socket = null;
     }
 

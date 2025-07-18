@@ -61,7 +61,8 @@ async def create_workspace(
     workspace = await crud.workspace.create_with_owner(
         db=db, obj_in=workspace_in, owner_id=current_user.id
     )
-    return workspace
+    # Explicitly load the workspace with members to avoid lazy loading issues
+    return await crud.workspace.get_workspace_with_members(db=db, workspace_id=workspace.id)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)

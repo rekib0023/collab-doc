@@ -83,6 +83,31 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             .limit(limit)
         )
         return result.scalars().all()
+        
+    async def get_multi_by_user_access(
+        self, db: AsyncSession, *, user_id: str, workspace_id: str = None, skip: int = 0, limit: int = 100
+    ) -> List[Document]:
+        """Get documents that the user has access to, optionally filtered by workspace"""
+        from app.models.workspace import workspace_members
+
+        # Start building the query
+        query = select(Document).join(
+            workspace_members,
+            workspace_members.c.workspace_id == Document.workspace_id,
+        ).where(workspace_members.c.user_id == user_id)
+        
+        # Add workspace filter if provided
+        if workspace_id:
+            query = query.where(Document.workspace_id == workspace_id)
+            
+        # Complete the query with ordering, pagination and eager loading
+        query = query.options(selectinload(Document.creator))\
+            .order_by(Document.updated_at.desc())\
+            .offset(skip)\
+            .limit(limit)
+            
+        result = await db.execute(query)
+        return result.scalars().all()
 
     async def update_document(
         self,

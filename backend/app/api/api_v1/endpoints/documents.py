@@ -52,14 +52,15 @@ async def check_document_permissions(
 async def read_documents(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
+    workspace_id: str = None,
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
     """
-    Retrieve all documents the user has access to.
+    Retrieve documents the user has access to, optionally filtered by workspace_id.
     """
     return await crud.document.get_multi_by_user_access(
-        db=db, user_id=current_user.id, skip=skip, limit=limit
+        db=db, user_id=current_user.id, workspace_id=workspace_id, skip=skip, limit=limit
     )
 
 

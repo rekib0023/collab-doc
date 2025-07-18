@@ -2,6 +2,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import axios from 'axios';
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { RootState } from './index';
+import { Document } from '@/types/document';
 
 export interface ApiError {
   status: number;
@@ -178,14 +179,23 @@ export const workspaceApi = api.injectEndpoints({
 // Document endpoints
 export const documentApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getDocuments: builder.query<any[], string>({
-      query: (arg) => {
-        if (arg === 'recent') {
-          return '/workspaces/recent/documents';
+    getDocuments: builder.query<Document[], string>({
+      query: (workspaceId: string) => {
+        if (workspaceId === 'recent') {
+          return { url: '/workspaces/recent/documents' };
         }
-        return `/workspaces/${arg}/documents`;
+        return {
+          url: '/documents',
+          params: { workspace_id: workspaceId },
+        };
       },
-      providesTags: ['Document'],
+      providesTags: (result) =>
+        result
+          ? [
+            ...result.map(({ id }) => ({ type: 'Document' as const, id })),
+            { type: 'Document', id: 'LIST' },
+          ]
+          : [{ type: 'Document', id: 'LIST' }],
     }),
     getDocument: builder.query<any, { documentId: string }>({
       query: ({ documentId }) => `/documents/${documentId}`,
@@ -200,7 +210,7 @@ export const documentApi = api.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Document'],
+      invalidatesTags: [{ type: 'Document', id: 'LIST' }],
     }),
     updateDocument: builder.mutation<
       any,

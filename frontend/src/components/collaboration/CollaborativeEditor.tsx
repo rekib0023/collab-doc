@@ -16,6 +16,7 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const editorRef = useRef<HTMLDivElement>(null);
+  const wsServiceRef = useRef<WebSocketService | null>(null);
   const { token } = useSelector((state: RootState) => state.auth);
   const { activeUsers, connectionStatus, error } = useSelector(
     (state: RootState) => state.collaboration
@@ -23,11 +24,18 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
   useEffect(() => {
     if (token && documentId) {
-      const service = new WebSocketService(dispatch, token, documentId);
-      service.connect();
+      // Instantiate and connect only if it hasn't been done yet.
+      if (!wsServiceRef.current) {
+        wsServiceRef.current = new WebSocketService(dispatch, token, documentId);
+        wsServiceRef.current.connect();
+      }
 
+      // The cleanup function will be called when the component unmounts.
       return () => {
-        service.disconnect();
+        if (wsServiceRef.current) {
+          wsServiceRef.current.disconnect();
+          wsServiceRef.current = null;
+        }
       };
     }
   }, [documentId, token, dispatch]);
