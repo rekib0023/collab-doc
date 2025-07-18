@@ -1,27 +1,20 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RootState } from "@/store";
+import CardGrid from "@/components/shared/CardGrid";
+import DocumentCard from "@/components/shared/DocumentCard";
+import EmptyState from "@/components/shared/EmptyState";
+import LoadingCard from "@/components/shared/LoadingCard";
+import PageHeader from "@/components/shared/PageHeader";
+import TabsContainer from "@/components/shared/TabsContainer";
+import WorkspaceCard from "@/components/shared/WorkspaceCard";
+import useAuth from "@/hooks/useAuth";
 import { useGetDocumentsQuery, useGetWorkspacesQuery } from "@/store/api";
 import { Document } from "@/types/document";
 import { Clock, FileText, Folder, Plus, Star } from "lucide-react";
 import React from "react";
-import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 const HomePage: React.FC = () => {
-  const { isAuthenticated, user } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { isAuthenticated, user } = useAuth();
 
   const { data: workspaces, isLoading: isLoadingWorkspaces } =
     useGetWorkspacesQuery(undefined, { skip: !isAuthenticated });
@@ -33,206 +26,127 @@ const HomePage: React.FC = () => {
     <div className="container p-6">
       {isAuthenticated ? (
         <>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">
-              Welcome, {user?.name || "Collaborator"}
-            </h1>
-            <div className="flex space-x-2">
-              <Button asChild>
-                <Link to="/workspaces/create">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Workspace
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/documents/create">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Document
-                </Link>
-              </Button>
-            </div>
-          </div>
+          <PageHeader
+            title={`Welcome, ${user?.name || "Collaborator"}`}
+            actions={
+              <>
+                <Button asChild>
+                  <Link to="/workspaces/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Workspace
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/documents/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Document
+                  </Link>
+                </Button>
+              </>
+            }
+          />
 
-          <Tabs defaultValue="recent">
-            <TabsList className="mb-4">
-              <TabsTrigger value="recent">
-                <Clock className="mr-2 h-4 w-4" />
-                Recent
-              </TabsTrigger>
-              <TabsTrigger value="workspaces">
-                <Folder className="mr-2 h-4 w-4" />
-                Workspaces
-              </TabsTrigger>
-              <TabsTrigger value="starred">
-                <Star className="mr-2 h-4 w-4" />
-                Starred
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="recent" className="space-y-6">
-              <h2 className="text-xl font-semibold">Recent Documents</h2>
-
-              {isLoadingDocuments ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Card key={i} className="overflow-hidden">
-                        <CardHeader className="pb-2">
-                          <Skeleton className="h-5 w-4/5 mb-1" />
-                          <Skeleton className="h-4 w-2/3" />
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <Skeleton className="h-4 w-full mb-2" />
-                          <Skeleton className="h-4 w-2/3" />
-                        </CardContent>
-                        <CardFooter>
-                          <Skeleton className="h-4 w-1/2" />
-                        </CardFooter>
-                      </Card>
-                    ))}
-                </div>
-              ) : recentDocuments && recentDocuments.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentDocuments.map((document: Document) => (
-                    <Card key={document.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={document.creator.avatar || ""} />
-                            <AvatarFallback>
-                              {document.creator.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm text-muted-foreground truncate">
-                            {document.creator.name}
-                          </span>
-                        </div>
-                        <CardTitle className="truncate text-lg">
-                          {document.name}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {document.description || "No description available."}
-                        </p>
-                      </CardContent>
-                      <div className="flex justify-between items-center p-4 pt-0">
-                        <span className="text-xs text-muted-foreground">
-                          Edited{" "}
-                          {new Date(
-                            document.updated_at || document.created_at
-                          ).toLocaleDateString()}
-                        </span>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/documents/${document.id}`}>Open</Link>
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-3" />
-                  <h3 className="text-lg font-medium mb-1">
-                    No recent documents
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    You haven't created or edited any documents yet.
-                  </p>
-                  <Button asChild>
-                    <Link to="/documents/create">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create a Document
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="workspaces" className="space-y-6">
-              <h2 className="text-xl font-semibold">Your Workspaces</h2>
-
-              {isLoadingWorkspaces ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Card key={i} className="overflow-hidden">
-                        <CardHeader className="pb-2">
-                          <Skeleton className="h-5 w-4/5 mb-1" />
-                          <Skeleton className="h-4 w-2/3" />
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <Skeleton className="h-4 w-full mb-2" />
-                          <Skeleton className="h-4 w-2/3" />
-                        </CardContent>
-                        <CardFooter>
-                          <Skeleton className="h-4 w-1/2" />
-                        </CardFooter>
-                      </Card>
-                    ))}
-                </div>
-              ) : workspaces && workspaces.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {workspaces.map((workspace) => (
-                    <Card key={workspace.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="truncate text-lg">
-                          {workspace.name}
-                        </CardTitle>
-                        <CardDescription className="truncate">
-                          {workspace.member_count} members
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {workspace.description || "No description available."}
-                        </p>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <span className="text-xs text-muted-foreground">
-                          {workspace.document_count} documents
-                        </span>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/workspaces/${workspace.id}`}>Open</Link>
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Folder className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-3" />
-                  <h3 className="text-lg font-medium mb-1">
-                    No workspaces found
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    You haven't created or joined any workspaces yet.
-                  </p>
-                  <Button asChild>
-                    <Link to="/workspaces/create">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create a Workspace
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="starred" className="space-y-6">
-              <h2 className="text-xl font-semibold">Starred Documents</h2>
-              <div className="text-center py-8">
-                <Star className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-3" />
-                <h3 className="text-lg font-medium mb-1">
-                  No starred documents
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  You haven't starred any documents yet.
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <TabsContainer
+            defaultValue="recent"
+            className="w-full"
+            tabs={[
+              {
+                value: "recent",
+                label: (
+                  <>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Recent
+                  </>
+                ),
+                content: (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-semibold">Recent Documents</h2>
+                    {isLoadingDocuments ? (
+                      <CardGrid>
+                        {Array(3)
+                          .fill(0)
+                          .map((_, i) => (
+                            <LoadingCard key={i} />
+                          ))}
+                      </CardGrid>
+                    ) : recentDocuments && recentDocuments.length > 0 ? (
+                      <CardGrid>
+                        {recentDocuments.map((document: Document) => (
+                          <DocumentCard key={document.id} document={document} />
+                        ))}
+                      </CardGrid>
+                    ) : (
+                      <EmptyState
+                        icon={FileText}
+                        title="No recent documents"
+                        description="You haven't created or edited any documents yet."
+                        actionLabel="Create a Document"
+                        actionLink="/documents/create"
+                        actionIcon={Plus}
+                      />
+                    )}
+                  </div>
+                )
+              },
+              {
+                value: "workspaces",
+                label: (
+                  <>
+                    <Folder className="mr-2 h-4 w-4" />
+                    Workspaces
+                  </>
+                ),
+                content: (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-semibold">Your Workspaces</h2>
+                    {isLoadingWorkspaces ? (
+                      <CardGrid>
+                        {Array(3)
+                          .fill(0)
+                          .map((_, i) => (
+                            <LoadingCard key={i} />
+                          ))}
+                      </CardGrid>
+                    ) : workspaces && workspaces.length > 0 ? (
+                      <CardGrid>
+                        {workspaces.map((workspace) => (
+                          <WorkspaceCard key={workspace.id} workspace={workspace} />
+                        ))}
+                      </CardGrid>
+                    ) : (
+                      <EmptyState
+                        icon={Folder}
+                        title="No workspaces found"
+                        description="You haven't created or joined any workspaces yet."
+                        actionLabel="Create a Workspace"
+                        actionLink="/workspaces/create"
+                        actionIcon={Plus}
+                      />
+                    )}
+                  </div>
+                )
+              },
+              {
+                value: "starred",
+                label: (
+                  <>
+                    <Star className="mr-2 h-4 w-4" />
+                    Starred
+                  </>
+                ),
+                content: (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-semibold">Starred Documents</h2>
+                    <EmptyState
+                      icon={Star}
+                      title="No starred documents"
+                      description="You haven't starred any documents yet."
+                    />
+                  </div>
+                )
+              }
+            ]}
+          />
         </>
       ) : (
         <div className="flex flex-col items-center justify-center py-20">
