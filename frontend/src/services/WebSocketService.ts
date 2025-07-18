@@ -1,3 +1,4 @@
+import { AppDispatch } from '@/store';
 import {
   addOperation,
   addUser,
@@ -8,7 +9,6 @@ import {
   updateUserCursor,
   User
 } from '@/store/slices/collaborationSlice';
-import { AppDispatch } from '../store';
 
 interface WSMessage {
   type: string;
@@ -43,7 +43,7 @@ export default class WebSocketService {
 
     // Create new WebSocket connection
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
+    const host = 'localhost:8000';
     const apiPath = '/api/v1/ws';
     const url = `${protocol}//${host}${apiPath}/documents/${this.documentId}?token=${this.token}`;
 

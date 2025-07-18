@@ -5,6 +5,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { WebSocketProvider } from "@/context/WebSocketContext";
 import AuthPage from "@/pages/AuthPage";
 import CreateWorkspacePage from "@/pages/CreateWorkspacePage";
 import DocumentPage from "@/pages/DocumentPage";
@@ -32,7 +33,8 @@ const App: React.FC = () => {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <ToastProvider>
-        <MainLayout>
+        <WebSocketProvider>
+          <MainLayout>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<HomePage />} />
@@ -127,7 +129,8 @@ const App: React.FC = () => {
             {/* 404 route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </MainLayout>
+          </MainLayout>
+        </WebSocketProvider>
       </ToastProvider>
     </ThemeProvider>
   );

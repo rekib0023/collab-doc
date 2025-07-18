@@ -1,10 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import WebSocketService from "@/services/WebSocketService";
-import { AppDispatch, RootState } from "@/store";
+import { useCollaboration } from "@/hooks/useCollaboration";
+import { RootState } from "@/store";
 import { User } from "@/store/slices/collaborationSlice";
-import React, { useEffect, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useRef } from "react";
+import { useSelector } from "react-redux";
 import CollaborativeCursor from "./CollaborativeCursor";
 
 interface CollaborativeEditorProps {
@@ -14,46 +14,28 @@ interface CollaborativeEditorProps {
 const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   documentId,
 }) => {
-  const dispatch = useDispatch<AppDispatch>();
   const editorRef = useRef<HTMLDivElement>(null);
-  const wsServiceRef = useRef<WebSocketService | null>(null);
-  const { token } = useSelector((state: RootState) => state.auth);
-  const { activeUsers, connectionStatus, error } = useSelector(
+  const { activeUsers } = useSelector(
     (state: RootState) => state.collaboration
   );
+  const { isConnected, isConnecting, error, applyOperation } = useCollaboration(
+    { documentId }
+  );
 
-  useEffect(() => {
-    if (token && documentId) {
-      // Instantiate and connect only if it hasn't been done yet.
-      if (!wsServiceRef.current) {
-        wsServiceRef.current = new WebSocketService(dispatch, token, documentId);
-        wsServiceRef.current.connect();
-      }
-
-      // The cleanup function will be called when the component unmounts.
-      return () => {
-        if (wsServiceRef.current) {
-          wsServiceRef.current.disconnect();
-          wsServiceRef.current = null;
-        }
-      };
-    }
-  }, [documentId, token, dispatch]);
+  // The useCollaboration hook takes care of connection management
+  // with autoConnect=true by default
 
   const renderConnectionStatus = () => {
     if (error) {
       return <Badge variant="destructive">Error</Badge>;
     }
-    switch (connectionStatus) {
-      case "connecting":
-        return <Badge variant="secondary">Connecting...</Badge>;
-      case "connected":
-        return <Badge className="bg-green-500">Connected</Badge>;
-      case "disconnected":
-        return <Badge variant="destructive">Disconnected</Badge>;
-      default:
-        return null;
+    if (isConnecting) {
+      return <Badge variant="secondary">Connecting...</Badge>;
     }
+    if (isConnected) {
+      return <Badge className="bg-green-500">Connected</Badge>;
+    }
+    return <Badge variant="destructive">Disconnected</Badge>;
   };
 
   return (
@@ -96,7 +78,18 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div ref={editorRef} className="prose dark:prose-invert max-w-none" />
+        <div
+          ref={editorRef}
+          className="prose dark:prose-invert max-w-none min-h-[400px] border rounded-md p-4"
+          contentEditable
+          onInput={(e) => {
+            // When content changes, send an operation only if connected
+            if (isConnected) {
+              const content = e.currentTarget.innerHTML;
+              applyOperation("content_update", documentId, { content });
+            }
+          }}
+        />
         {Object.values(activeUsers).map((user: User) => (
           <CollaborativeCursor
             key={user.id}

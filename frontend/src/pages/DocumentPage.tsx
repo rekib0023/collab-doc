@@ -1,8 +1,10 @@
 import CollaborativeEditor from "@/components/collaboration/CollaborativeEditor";
+import CollaborationChat from "@/components/collaboration/CollaborationChat";
+import CollaboratorsPanel from "@/components/collaboration/CollaboratorsPanel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetDocumentQuery } from "@/store/api";
-import { Download, History, Save, Share2, Users } from "lucide-react";
+import { Download, History, Save, Share2 } from "lucide-react";
 import React from "react";
 import { useParams } from "react-router-dom";
 
@@ -62,10 +64,8 @@ const DocumentPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Users className="h-4 w-4 mr-1" />
-            <span>Collaborators</span>
-          </Button>
+          <CollaboratorsPanel documentId={documentId || ""} />
+          <CollaborationChat documentId={documentId || ""} />
           <Button variant="outline" size="sm">
             <Share2 className="h-4 w-4 mr-1" />
             <span>Share</span>
