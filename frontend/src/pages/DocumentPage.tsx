@@ -1,10 +1,12 @@
 import CollaborativeEditor from "@/components/collaboration/CollaborativeEditor";
 import CollaborationChat from "@/components/collaboration/CollaborationChat";
 import CollaboratorsPanel from "@/components/collaboration/CollaboratorsPanel";
+import ExportDialog from "@/components/collaboration/ExportDialog";
+import ShareDialog from "@/components/collaboration/ShareDialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetDocumentQuery } from "@/store/api";
-import { Download, History, Save, Share2 } from "lucide-react";
+import { History, Save } from "lucide-react";
 import React from "react";
 import { useParams } from "react-router-dom";
 
@@ -66,18 +68,12 @@ const DocumentPage: React.FC = () => {
         <div className="flex items-center space-x-2">
           <CollaboratorsPanel documentId={documentId || ""} />
           <CollaborationChat documentId={documentId || ""} />
-          <Button variant="outline" size="sm">
-            <Share2 className="h-4 w-4 mr-1" />
-            <span>Share</span>
-          </Button>
+          <ShareDialog documentId={documentId || ""} documentTitle={document.title} />
           <Button variant="outline" size="sm">
             <History className="h-4 w-4 mr-1" />
             <span>History</span>
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-1" />
-            <span>Export</span>
-          </Button>
+          <ExportDialog documentId={documentId || ""} documentTitle={document.title} />
           <Button variant="default" size="sm">
             <Save className="h-4 w-4 mr-1" />
             <span>Save</span>

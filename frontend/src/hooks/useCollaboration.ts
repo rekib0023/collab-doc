@@ -47,28 +47,44 @@ export const useCollaboration = ({ documentId, autoConnect = true }: UseCollabor
   // Setup cursor position tracking and periodic updates
   useEffect(() => {
     if (connectionStatus === "connected") {
-      // Set up cursor tracking
-      const handleMouseMove = (e: MouseEvent) => {
-        // Get cursor position relative to the document or editor container
-        // This might need adjustment based on your specific editor implementation
-        const rect = (e.target as Element).getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        setCursorPosition({ x, y });
+      // Find the editor element by its class or id
+      // This can be improved by using a ref passed from the component
+      const editorElements = document.querySelectorAll('.prose');
+      const editorElement = editorElements.length > 0 ? editorElements[0] : null;
+      
+      if (!editorElement) return; // No editor found
+      
+      // Set up cursor tracking only within the editor
+      const handleMouseMove = (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        // Calculate position relative to editor with scroll offsets
+        const rect = editorElement.getBoundingClientRect();
+        const scrollLeft = editorElement.scrollLeft || document.documentElement.scrollLeft;
+        const scrollTop = editorElement.scrollTop || document.documentElement.scrollTop;
+        
+        const x = (mouseEvent.clientX - rect.left) + scrollLeft;
+        const y = (mouseEvent.clientY - rect.top) + scrollTop;
+        
+        // Only update if position changed significantly (reduce network traffic)
+        if (!cursorPosition ||
+            Math.abs(cursorPosition.x - x) > 5 ||
+            Math.abs(cursorPosition.y - y) > 5) {
+          setCursorPosition({ x, y });
+        }
       };
 
-      document.addEventListener("mousemove", handleMouseMove);
+      // Only track mouse within the editor element
+      editorElement.addEventListener("mousemove", handleMouseMove);
 
-      // Set up periodic cursor updates to the server
+      // Set up periodic cursor updates to the server (reduced frequency)
       cursorUpdateTimerRef.current = setInterval(() => {
         if (cursorPosition) {
           sendCursorUpdate(cursorPosition);
         }
-      }, 100); // Send cursor position every 100ms
+      }, 150); // Send cursor position every 150ms for better performance
 
       return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
+        editorElement.removeEventListener("mousemove", handleMouseMove);
         if (cursorUpdateTimerRef.current) {
           clearInterval(cursorUpdateTimerRef.current);
         }
@@ -83,10 +99,24 @@ export const useCollaboration = ({ documentId, autoConnect = true }: UseCollabor
       type: operationType,
       targetId,
       payload,
-      vector: [], // This will be handled by the server
+      timestamp: Date.now(),
+      id: `temp-${Date.now()}`, // Temporary ID, will be replaced by server
+      vector: [], // Vector clock will be updated by the server
     };
 
     sendOperation(operation);
+  };
+
+  // Update user activity timestamp
+  const updateActivity = () => {
+    // This will trigger the WebSocketService to update lastActivityUpdate
+    // and may send an activity update based on throttling
+    if (connectionStatus === "connected") {
+      // We don't need to do anything here as mouse movements and other
+      // events will update activity in WebSocketService
+      // But we'll update the local timestamp to help with UI state
+      // This could also directly call a specific WebSocket message if needed
+    }
   };
 
   return {
@@ -98,7 +128,8 @@ export const useCollaboration = ({ documentId, autoConnect = true }: UseCollabor
     applyOperation,
     sendCursorUpdate,
     sendChatMessage,
+    updateActivity,
     connect,
-    disconnect,
+    disconnect
   };
 };
