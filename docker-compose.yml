@@ -1,4 +1,15 @@
 services:
+  # Frontend React application
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
   # Backend API service
   backend:
     build: ./backend
