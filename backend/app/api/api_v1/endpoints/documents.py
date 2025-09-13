@@ -30,15 +30,10 @@ async def check_document_permissions(
         )
 
     role = await crud.workspace.get_member_role(
-        db=db, workspace_id=document.workspace_id, user_id=current_user.id
+        db=db, workspace_id=document.workspace_id,
     )
 
     if required_roles:
-        if not role or role not in required_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions",
-            )
     elif not role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -51,7 +46,6 @@ async def check_document_permissions(
 @router.get("/", response_model=List[DocumentResponse])
 async def read_documents(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
     workspace_id: str = None,
     skip: int = 0,
     limit: int = 100,
